@@ -1,0 +1,56 @@
+---
+title: "Machine Learning Project"
+author: "Kevin Dinsmore"
+date: "July 31, 2016"
+output: html_document
+---
+
+## Background (from the instructors)
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+## Overview
+The goal of this project is to predict the manner in which the participants did the exercise.  Applying a  machine learning algorithms to the test set with the variable "classe" as the outcome we will attempt to accurately predict (a minimum of 80% on the initial test set) how each exercise was done.
+
+
+## PreProcessing and Model Selection
+First, since this is something since the author was somewhat constrainted in terms of subject matter knowledge and time.
+As a result, boosting was chosen given its relative strength and ability to contend with the large number of potential variables. NAs and absent values were removed:
+
+```{r}
+library(caret)
+trainLifting<-read.csv("pml-training.csv", na.strings = c("NA", ""))
+set.seed(314159)
+cleanLifting <- trainLifting[,colSums(is.na(trainLifting)) == 0]
+cleanLifting<-cleanLifting[,8:60]
+inTrain <- createDataPartition(y=trainLifting$classe, p=.65, list=FALSE)
+training <- cleanLifting[inTrain,]
+testing <- cleanLifting[-inTrain,]
+
+```
+
+## Modeling Choices
+Many of the choices were made favoring expediency with an eye for accurate prediction posibly the expense of interpretability.  Since our chosen algorithm would be subject to a validation set with a minimum of 80% to pass our overruling dictum was "make good guesses."  At the same time, because this is a learning exercise an aim was made not to somehow overfit the data as that seems to be a route to bad habits.
+
+Given its strength I opted for using boosting in hopes that it would not overwhelm my somewhat weak system in the way that some previous random forest exercises did.   Using boosting with trees in caret (method='gbm'), was not as fast as I might have hoped, but I did not want to trim the train control down to increase speed.  Since boosting uses weighted votes to the model would hopefully use such cross validation to manage bias/variance.  Ultimately, it seemed to perform well, though given what we had been previously taught this his hardly surprising. 
+
+```{r}
+modFitBoost <- train(classe ~ .,method="gbm",verbose=FALSE, data=training)
+```
+
+## Expected Errors
+Looking at the confusion matrix using our testing set we see the accuracy is quite good, there error rate is less than 10%:
+
+```{r}
+testPredictions <- predict(modFitBoost, testing)
+confusionMatrix(testPredictions, testing$classe)
+
+```
+
+## Conclusion
+Using this model on the quiz all 20 predictions were correct, more than I was hoping for, but a result that pleased me.
+
+## Acknowledgements
+I would like to thank Groupware@LES for the datasets:
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+
+http://groupware.les.inf.puc-rio.br/har
